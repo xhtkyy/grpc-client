@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Xhtkyy\GrpcClient;
 
 use Hyperf\Context\Context;
-use OpenTracing\SpanContext;
+use OpenTracing\Span;
 use OpenTracing\Tracer;
 use const OpenTracing\Formats\TEXT_MAP;
 
@@ -40,7 +40,7 @@ class AbstractClient
     private function withTrace(array $metadata): array
     {
         /**
-         * @var SpanContext $root
+         * @var Span $root
          */
         if ('' != ($root = Context::get('tracer.root'))) {
             $carrier = [];
