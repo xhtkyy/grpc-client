@@ -4,8 +4,11 @@ declare(strict_types=1);
 namespace Xhtkyy\GrpcClient;
 
 use Hyperf\Context\Context;
+use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\Grpc\StatusCode;
 use OpenTracing\Span;
 use OpenTracing\Tracer;
+use Xhtkyy\GrpcClient\Reply\ErrorReply;
 use const OpenTracing\Formats\TEXT_MAP;
 
 /**
@@ -19,7 +22,8 @@ use const OpenTracing\Formats\TEXT_MAP;
 class AbstractClient
 {
     public function __construct(
-        protected ClientManager $clientManager
+        protected ClientManager         $clientManager,
+        protected StdoutLoggerInterface $logger
     )
     {
     }
@@ -34,7 +38,20 @@ class AbstractClient
         $metadata = $this->withTrace($metadata);
         // get grpc client
         $client = $this->clientManager->get($method);
-        return $client->{$name}(...$arguments);
+        //
+        if ($name == '_simpleRequest') {
+            $result = $client->{$name}(...$arguments);
+            [$reply, $status, $response] = [$result[0] ?? '', $result[1] ?? 0, $result[2] ?? null];
+            if ($status != StatusCode::OK) {
+                // handle reply
+                $reply = new ErrorReply($reply);
+                // log error
+                $this->logger->debug("[grpc]{$method} [status-code]{$status} [error]code:{$reply->getCode()} message:{$reply->getMessage()}");
+            }
+            return [$reply, $status, $response];
+        } else {
+            return $client->{$name}(...$arguments);
+        }
     }
 
     private function withTrace(array $metadata): array
