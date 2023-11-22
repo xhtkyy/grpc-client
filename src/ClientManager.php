@@ -31,7 +31,7 @@ class ClientManager
         protected ConfigInterface                        $config
     )
     {
-        $this->serviceAlias = $this->config->get('discovery.service_alias', []);
+        $this->serviceAlias = $this->config->get('grpc.discovery.service_alias', []);
         $this->hostProxy = $this->config->get('hosts', []);
     }
 
