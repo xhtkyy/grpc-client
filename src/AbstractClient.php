@@ -35,7 +35,7 @@ class AbstractClient
             default => [$method, , &$metadata] = $arguments
         };
         // with trace
-        $metadata = $this->withTrace($metadata);
+        $metadata = $this->withTrace($metadata ?? []);
         // get grpc client
         $client = $this->clientManager->get($method);
         //
