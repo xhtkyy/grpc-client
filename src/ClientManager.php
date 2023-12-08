@@ -64,7 +64,9 @@ class ClientManager
 
         //get grpc client
         if (!isset($this->clients[$hostname]) || !$this->clients[$hostname]) {
-            $this->clients[$hostname] = new Client($hostname);
+            $this->clients[$hostname] = new Client($hostname, [
+                'timeout' => 10.0
+            ]);
         }
         return $this->clients[$hostname];
     }
