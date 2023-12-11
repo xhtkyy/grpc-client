@@ -8,6 +8,8 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Grpc\StatusCode;
 use OpenTracing\Span;
 use OpenTracing\Tracer;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Xhtkyy\GrpcClient\Event\GrpcCallEvent;
 use Xhtkyy\GrpcClient\Reply\ErrorReply;
 use const OpenTracing\Formats\TEXT_MAP;
 
@@ -22,8 +24,9 @@ use const OpenTracing\Formats\TEXT_MAP;
 class AbstractClient
 {
     public function __construct(
-        protected ClientManager         $clientManager,
-        protected StdoutLoggerInterface $logger
+        protected ClientManager            $clientManager,
+        protected StdoutLoggerInterface    $logger,
+        protected EventDispatcherInterface $dispatcher
     )
     {
     }
@@ -40,6 +43,7 @@ class AbstractClient
         $client = $this->clientManager->get($method);
         //
         if ($name == '_simpleRequest') {
+            $startAt = microtime(true);
             $result = $client->{$name}(...$arguments);
             [$reply, $status, $response] = [$result[0] ?? '', $result[1] ?? 0, $result[2] ?? null];
             if ($status != StatusCode::OK) {
@@ -48,6 +52,9 @@ class AbstractClient
                 // log error
                 $this->logger->debug("[grpc]{$method} [status-code]{$status} [error]code:{$reply->getCode()} message:{$reply->getMessage()}");
             }
+            // Dispatch gRPC Call
+            $this->dispatcher->dispatch(new GrpcCallEvent($status, $method, $status != StatusCode::OK ? $reply->getMessage() : '', (float)microtime(true) - $startAt));
+            // return 
             return [$reply, $status, $response];
         } else {
             return $client->{$name}(...$arguments);
