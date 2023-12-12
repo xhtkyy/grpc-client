@@ -57,8 +57,13 @@ class ClientManager
     {
         //rm instance
         $serviceName = $this->getServiceName($method);
-        $hostnameArr = explode(':', $hostname);
-        $this->serviceManager->get($serviceName)->removeNode(new Node($hostnameArr[0] ?? '', intval($hostnameArr[1] ?? 0)));
+        $servicePool = $this->serviceManager->get($serviceName);
+        foreach ($servicePool->get() as $node) {
+            if("$node->host:$node->port" == $hostname) {
+                $servicePool->removeNode($node);
+                break;
+            }
+        }
         unset($this->clients[$hostname]);
     }
 
