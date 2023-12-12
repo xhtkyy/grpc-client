@@ -28,4 +28,11 @@ class ServiceManager
         }
         return $this->services[$serviceName];
     }
+
+    public function remove($serviceName): void
+    {
+        if(isset($this->services[$serviceName])) {
+            unset($this->services[$serviceName]);
+        }
+    }
 }

@@ -59,7 +59,7 @@ class ClientManager
         $serviceName = $this->getServiceName($method);
         $servicePool = $this->serviceManager->get($serviceName);
         foreach ($servicePool->get() as $node) {
-            if("$node->host:$node->port" == $hostname) {
+            if ("$node->host:$node->port" == $hostname) {
                 $servicePool->removeNode($node);
                 break;
             }
@@ -98,6 +98,7 @@ class ClientManager
      */
     private function getHostName(string $serviceName): ?string
     {
+        if (empty($serviceName)) return null;
         // find host proxy
         if (isset($this->hostProxy[$serviceName])) return $this->hostProxy[$serviceName];
         // remote
@@ -107,6 +108,7 @@ class ClientManager
             $node = $this->serviceManager->get($serviceName)->select();
             $hostname = "{$node->host}:{$node->port}";
         } catch (NoNodesAvailableException) {
+            $this->serviceManager->remove($serviceName);
         }
         return $hostname;
     }
