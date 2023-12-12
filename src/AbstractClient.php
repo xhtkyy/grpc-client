@@ -50,7 +50,7 @@ class AbstractClient
                 [$reply, $status, $response] = [$result[0] ?? '', $result[1] ?? 0, $result[2] ?? null];
                 if ($status != StatusCode::OK) {
                     if ($status == -1) {
-                        $reply = 'Request fail or timeout!';
+                        $reply = 'request fail or timeout!';
                         $status = StatusCode::DEADLINE_EXCEEDED;
                     }
                     // handle reply
