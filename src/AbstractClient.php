@@ -43,12 +43,16 @@ class AbstractClient
         // get grpc client
         $client = $this->clientManager->get($method);
         //
+        $startAt = microtime(true);
         try {
             if ($name == '_simpleRequest') {
-                $startAt = microtime(true);
                 $result = $client->{$name}(...$arguments);
                 [$reply, $status, $response] = [$result[0] ?? '', $result[1] ?? 0, $result[2] ?? null];
                 if ($status != StatusCode::OK) {
+                    if ($status == -1) {
+                        $reply = 'Request fail or timeout!';
+                        $status = StatusCode::DEADLINE_EXCEEDED;
+                    }
                     // handle reply
                     $reply = new ErrorReply($reply);
                     // log error
@@ -69,7 +73,8 @@ class AbstractClient
                     $this->clientManager->remove($method, $client->getHostName());
                 }
             }
-            return [new ErrorReply("-1#service fail"), StatusCode::ABORTED, null];
+            $this->dispatcher->dispatch(new GrpcCallEvent(StatusCode::UNAVAILABLE, $method, $exception->getMessage(), (float)microtime(true) - $startAt));
+            return [new ErrorReply("-1#service fail"), StatusCode::UNAVAILABLE, null];
         }
     }
 
