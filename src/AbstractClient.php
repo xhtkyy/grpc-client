@@ -52,9 +52,7 @@ class AbstractClient
                     // handle reply
                     $reply = new ErrorReply($reply);
                     // log error
-                    $this->logger->debug("[grpc]{$method} [status-code]{$status} [error]code:{$reply->getCode()} message:{$reply->getMessage()}", [
-                        "instance" => $client->getHostName()
-                    ]);
+                    $this->logger->debug("[grpc]{$method} [status-code]{$status} [error]code:{$reply->getCode()} message:{$reply->getMessage()} [instance]{$client->getHostName()}");
                 }
                 // Dispatch gRPC Call
                 $this->dispatcher->dispatch(new GrpcCallEvent($status, $method, $status != StatusCode::OK ? $reply->getMessage() : '', (float)microtime(true) - $startAt));
@@ -64,9 +62,7 @@ class AbstractClient
                 return $client->{$name}(...$arguments);
             }
         } catch (\Throwable $exception) {
-            $this->logger->error("[grpc]{$method} [error]{$exception->getMessage()}", [
-                "instance" => $client->getHostName()
-            ]);
+            $this->logger->error("[grpc]{$method} [error]{$exception->getMessage()} [instance]{$client->getHostName()}");
             if ($exception instanceof GrpcClientException) {
                 if (str_contains($exception->getMessage(), 'error=Connection refused')) {
                     //connect fail remove instance
