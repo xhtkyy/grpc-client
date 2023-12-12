@@ -6,6 +6,7 @@ namespace Xhtkyy\GrpcClient;
 use Hyperf\Context\Context;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Grpc\StatusCode;
+use Hyperf\GrpcClient\Exception\GrpcClientException;
 use OpenTracing\Span;
 use OpenTracing\Tracer;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -42,22 +43,33 @@ class AbstractClient
         // get grpc client
         $client = $this->clientManager->get($method);
         //
-        if ($name == '_simpleRequest') {
-            $startAt = microtime(true);
-            $result = $client->{$name}(...$arguments);
-            [$reply, $status, $response] = [$result[0] ?? '', $result[1] ?? 0, $result[2] ?? null];
-            if ($status != StatusCode::OK) {
-                // handle reply
-                $reply = new ErrorReply($reply);
-                // log error
-                $this->logger->debug("[grpc]{$method} [status-code]{$status} [error]code:{$reply->getCode()} message:{$reply->getMessage()}");
+        try {
+            if ($name == '_simpleRequest') {
+                $startAt = microtime(true);
+                $result = $client->{$name}(...$arguments);
+                [$reply, $status, $response] = [$result[0] ?? '', $result[1] ?? 0, $result[2] ?? null];
+                if ($status != StatusCode::OK) {
+                    // handle reply
+                    $reply = new ErrorReply($reply);
+                    // log error
+                    $this->logger->debug("[grpc]{$method} [status-code]{$status} [error]code:{$reply->getCode()} message:{$reply->getMessage()}");
+                }
+                // Dispatch gRPC Call
+                $this->dispatcher->dispatch(new GrpcCallEvent($status, $method, $status != StatusCode::OK ? $reply->getMessage() : '', (float)microtime(true) - $startAt));
+                // return
+                return [$reply, $status, $response];
+            } else {
+                return $client->{$name}(...$arguments);
             }
-            // Dispatch gRPC Call
-            $this->dispatcher->dispatch(new GrpcCallEvent($status, $method, $status != StatusCode::OK ? $reply->getMessage() : '', (float)microtime(true) - $startAt));
-            // return 
-            return [$reply, $status, $response];
-        } else {
-            return $client->{$name}(...$arguments);
+        } catch (\Throwable $exception) {
+            $this->logger->error("[grpc]{$method} [instance]{$client->getHostName()}  [error]{$exception->getMessage()}");
+            if ($exception instanceof GrpcClientException) {
+                if (str_contains($exception->getMessage(), 'error=Connection refused')) {
+                    //connect fail remove instance
+                    $this->clientManager->remove($method, $client->getHostName());
+                }
+            }
+            return [new ErrorReply("-1#service fail"), StatusCode::ABORTED, null];
         }
     }
 

@@ -48,6 +48,15 @@ class Service
         return $this->loadBalancer->select();
     }
 
+    /**
+     * @param Node $node
+     * @return bool
+     */
+    public function removeNode(Node $node): bool
+    {
+        return $this->loadBalancer->removeNode($node);
+    }
+
     private function checkSubscribe(): void
     {
         if (!$this->isSubscribe) {

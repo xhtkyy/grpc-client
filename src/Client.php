@@ -13,6 +13,11 @@ namespace Xhtkyy\GrpcClient;
  */
 class Client extends \Hyperf\GrpcClient\BaseClient
 {
+    public function __construct(private string $hostname, private array $options = [])
+    {
+        parent::__construct($this->hostname, $this->options);
+    }
+
     public function __call($name, $arguments)
     {
         return match ($name) {
@@ -22,5 +27,10 @@ class Client extends \Hyperf\GrpcClient\BaseClient
             '_bidiRequest' => $this->_bidiRequest(...$arguments),
             default => $this->_getGrpcClient()->{$name}(...$arguments)
         };
+    }
+
+    public function getHostName(): string
+    {
+        return $this->hostname;
     }
 }

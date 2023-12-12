@@ -5,6 +5,7 @@ namespace Xhtkyy\GrpcClient;
 
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\LoadBalancer\Exception\NoNodesAvailableException;
+use Hyperf\LoadBalancer\Node;
 use Xhtkyy\GrpcClient\Exception\ServiceNotFoundException;
 use Xhtkyy\GrpcClient\Services\ServiceManager;
 
@@ -35,31 +36,12 @@ class ClientManager
         $this->hostProxy = $this->config->get('hosts', []);
     }
 
-    public function get($method): Client
+    public function get(string $method): Client
     {
-        $hostname = null;
-        $servicePath = current(explode('/', trim($method, '/')));
-        if (isset($this->serviceProxy[$servicePath])) {
-            $hostname = $this->getHostName($this->serviceProxy[$servicePath]);
-        } else {
-            $tmp = explode('.', $servicePath);
-            for ($i = count($tmp); $i > 0; $i--) {
-                if (isset($tmp[$i])) {
-                    unset($tmp[$i]);
-                }
-                $serviceName = implode('.', $tmp) . '.grpc'; //todo config
-                //rename
-                isset($this->serviceAlias[$serviceName]) && $serviceName = $this->serviceAlias[$serviceName];
-                $hostname = $this->getHostName($serviceName);
-                if ($hostname) {
-                    //存在就 更新进代理
-                    $this->serviceProxy[$servicePath] = $serviceName;
-                    break;
-                }
-            }
-        }
+        $serviceName = $this->getServiceName($method);
+        $hostname = $this->getHostName($serviceName);
         if (!$hostname) {
-            throw new ServiceNotFoundException("[method] $method [service] $servicePath [error] can not get service instance!");
+            throw new ServiceNotFoundException("[method] $method [service] $serviceName [error] can not get service instance!");
         }
 
         //get grpc client
@@ -69,6 +51,40 @@ class ClientManager
             ]);
         }
         return $this->clients[$hostname];
+    }
+
+    public function remove(string $method, string $hostname): void
+    {
+        //rm instance
+        $serviceName = $this->getServiceName($method);
+        $hostnameArr = explode(':', $hostname);
+        $this->serviceManager->get($serviceName)->removeNode(new Node($hostnameArr[0] ?? '', intval($hostnameArr[1] ?? 0)));
+        unset($this->clients[$hostname]);
+    }
+
+    private function getServiceName(string $method): string
+    {
+        $serviceName = '';
+        $servicePath = current(explode('/', trim($method, '/')));
+        if (isset($this->serviceProxy[$servicePath])) {
+            $serviceName = $this->serviceProxy[$servicePath];
+        } else {
+            $tmp = explode('.', $servicePath);
+            for ($i = count($tmp); $i > 0; $i--) {
+                if (isset($tmp[$i])) {
+                    unset($tmp[$i]);
+                }
+                $serviceName = implode('.', $tmp) . '.grpc'; //todo config
+                //rename
+                isset($this->serviceAlias[$serviceName]) && $serviceName = $this->serviceAlias[$serviceName];
+                if ($this->getHostName($serviceName)) {
+                    //存在就 更新进代理
+                    $this->serviceProxy[$servicePath] = $serviceName;
+                    break;
+                }
+            }
+        }
+        return $serviceName;
     }
 
     /**
