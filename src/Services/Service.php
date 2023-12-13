@@ -70,6 +70,12 @@ class Service
                 ));
                 $this->isSubscribe = true;
             }
+        } else {
+            if (empty($this->loadBalancer->getNodes())) {
+                //重新再获取一次，兼容订阅可能出现的短暂异常
+                $nodes = $this->driverManager->get($this->driver)->getNodes('', $this->serviceName, ['protocol' => 'grpc']);
+                $this->set($nodes);
+            }
         }
     }
 
