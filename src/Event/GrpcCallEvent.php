@@ -14,6 +14,7 @@ class GrpcCallEvent
         public string $path,
         public string $error,
         public float $at,
+        public string $hostname
     )
     {
         if($this->at < 0) {
