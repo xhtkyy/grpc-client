@@ -73,7 +73,7 @@ class AbstractClient
                     $this->clientManager->remove($method, $client->getHostName());
                 }
             }
-            $this->dispatcher->dispatch(new GrpcCallEvent(StatusCode::UNAVAILABLE, $method, $exception->getMessage(), (float)microtime(true) - $startAt), $client->getHostName());
+            $this->dispatcher->dispatch(new GrpcCallEvent(StatusCode::UNAVAILABLE, $method, $exception->getMessage(), (float)microtime(true) - $startAt,$client->getHostName()));
             return [new ErrorReply("-1#service fail"), StatusCode::UNAVAILABLE, null];
         }
     }
