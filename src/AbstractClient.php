@@ -59,7 +59,7 @@ class AbstractClient
                     $this->logger->debug("[grpc]{$method} [status-code]{$status} [error]code:{$reply->getCode()} message:{$reply->getMessage()} [instance]{$client->getHostName()}");
                 }
                 // Dispatch gRPC Call
-                $this->dispatcher->dispatch(new GrpcCallEvent($status, $method, $status != StatusCode::OK ? $reply->getMessage() : '', (float)microtime(true) - $startAt), $client->getHostName());
+                $this->dispatcher->dispatch(new GrpcCallEvent($status, $method, $status != StatusCode::OK ? $reply->getMessage() : '', (float)microtime(true) - $startAt,$client->getHostName()));
                 // return
                 return [$reply, $status, $response];
             } else {
